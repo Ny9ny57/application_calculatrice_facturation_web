@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2747d6">
+<meta name="description" content="Estime le prix d'un site web à partir du projet et de ton TJM.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Combien facturer">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Combien facturer ?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: réglages à gauche, feuille de devis collante à droite ; une colonne + barre de total en bas sur mobile */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --sheet:#fbfcfd; --ink:#16202b; --muted:#5a6877; --line:#d5dce3;
+  --accent:#2747d6; --accent-soft:#e3e8fb; --accent-ink:#ffffff; --ok:#1d7a4f; --warn:#a55a00;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --surface:#171e26; --sheet:#1b232c; --ink:#e6ebf0; --muted:#94a2b1; --line:#2c3743;
+  --accent:#7d95ff; --accent-soft:#232d52; --accent-ink:#0f141a; --ok:#5fd19a; --warn:#f0a752; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --surface:#171e26; --sheet:#1b232c; --ink:#e6ebf0; --muted:#94a2b1; --line:#2c3743;
+  --accent:#7d95ff; --accent-soft:#232d52; --accent-ink:#0f141a; --ok:#5fd19a; --warn:#f0a752; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:28px 96px}
+header.top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;margin-bottom:24px}
+h1{font:700 clamp(30px,4.5vw,44px)/1.05 var(--f-display);letter-spacing:-.02em;margin:0;text-wrap:balance}
+.lede{color:var(--muted);margin:6px 0 0;max-width:58ch}
+.reset{font:500 13px var(--f-body);background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:7px 12px;cursor:pointer}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.install{font:600 13px var(--f-body);background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:8px 14px;cursor:pointer}
+.install:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ios{flex-basis:100%;margin:0}
+.reset:hover{color:var(--ink);border-color:var(--muted)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:28px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+.panel{display:grid;gap:18px}
+section.block{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:16px}
+.block h2{font:600 12px/1 var(--f-body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0;display:flex;justify-content:space-between;gap:8px}
+.block h2 .step{font-family:var(--f-mono);color:var(--accent)}
+.field{display:grid;gap:7px;min-width:0}
+.field>label,.field>.lbl{font-weight:500;font-size:14px}
+.hint{font-size:12.5px;color:var(--muted)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+
+/* segmented choices */
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px;background:var(--sheet);display:grid;gap:1px;line-height:1.25}
+.seg label small{color:var(--muted);font-size:11.5px}
+.seg input:checked+label{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.seg input:focus-visible+label{outline:2px solid var(--accent);outline-offset:2px}
+
+input[type=number],input[type=text]{font:500 15px var(--f-mono);color:var(--ink);background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+input[type=number]:focus,input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.unit{position:relative}
+.unit input{padding-right:62px}
+.unit span{position:absolute;right:10px;top:50%;transform:translateY(-50%);font:12px var(--f-mono);color:var(--muted);pointer-events:none}
+input[type=range]{width:100%;accent-color:var(--accent)}
+
+.feats{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px}
+.feat{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--sheet)}
+.feat:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.feat input{margin-top:3px;accent-color:var(--accent)}
+.feat span{display:grid;line-height:1.3;font-size:14px}
+.feat small{font:11.5px var(--f-mono);color:var(--muted)}
+
+.tjmcalc{border-top:1px dashed var(--line);padding-top:14px;display:grid;gap:14px}
+.result-inline{font:500 14px var(--f-mono);color:var(--ok)}
+
+/* devis sheet */
+aside.sheet{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);background:var(--sheet);border:1px solid var(--line);border-radius:4px;box-shadow:0 1px 0 var(--line),0 18px 40px -24px rgba(10,20,40,.35);padding:24px 22px;display:grid;gap:18px}
+@media (max-width:900px){aside.sheet{position:static}}
+.sheet-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:10px}
+.sheet-head b{font:700 20px var(--f-display);letter-spacing:-.01em}
+.sheet-head span{font:12px var(--f-mono);color:var(--muted)}
+.big{display:grid;gap:4px}
+.big .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.big .num{font:700 clamp(38px,6vw,52px)/1 var(--f-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.big .num small{font-size:.42em;font-weight:500;color:var(--muted);margin-left:4px}
+.big .range{font:13px var(--f-mono);color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:12px var(--f-mono);border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--muted)}
+.chip b{color:var(--ink);font-weight:500}
+
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+th{font:500 11px var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:left;padding:0 0 6px;border-bottom:1px solid var(--line)}
+td{padding:7px 0;border-bottom:1px dotted var(--line);vertical-align:top}
+td.n,th.n{text-align:right;font-family:var(--f-mono);white-space:nowrap;padding-left:10px}
+td.sub{color:var(--muted)}
+tr.tot td{border-bottom:none;padding-top:9px;font-weight:600}
+tr.grand td{border-top:2px solid var(--ink);border-bottom:none;font-size:15px;font-weight:700;padding-top:10px}
+.mention{font-size:12px;color:var(--muted);font-style:italic}
+
+.extra{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:14px}
+.extra h3{margin:0;font:600 12px var(--f-body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.kv{display:flex;justify-content:space-between;gap:12px;font-size:13.5px}
+.kv span:last-child{font-family:var(--f-mono);white-space:nowrap}
+.copy{font:600 14px var(--f-body);background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:11px 14px;cursor:pointer}
+.copy:focus-visible,.reset:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.copied{font-size:12.5px;color:var(--ok);min-height:1em;text-align:center}
+#copyFallback{width:100%;min-height:120px;font:12px var(--f-mono);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px}
+
+.mbar{display:none}
+@media (max-width:900px){
+  .mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:5;justify-content:space-between;align-items:center;gap:12px;
+    background:var(--surface);border-top:1px solid var(--line);padding:10px 20px calc(10px + env(safe-area-inset-bottom,0px))}
+  .mbar b{font:700 22px var(--f-display);font-variant-numeric:tabular-nums}
+  .mbar a{font:600 13px var(--f-body);color:var(--accent)}
+}
+@media (prefers-reduced-motion:no-preference){.big .num{transition:color .2s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Combien facturer ce site ?</h1>
+      <p class="lede">Décris le projet, l’outil estime les jours de travail et en déduit un prix à annoncer au client, avec le détail ligne par ligne.</p>
+    </div>
+    <div class="actions"><button class="install" id="install" type="button" hidden>Installer l’application</button><button class="reset" id="reset" type="button">Revenir à l’exemple</button></div>
+    <p class="hint ios" id="iosHint" hidden>Sur iPhone : touche Partager puis « Sur l’écran d’accueil » pour installer l’app.</p>
+  </header>
+
+  <div class="grid">
+    <form class="panel" id="f" onsubmit="return false">
+
+      <section class="block">
+        <h2>Ton taux journalier (TJM) <span class="step">1</span></h2>
+        <div class="seg" role="radiogroup" aria-label="Mode de calcul du TJM">
+          <input type="radio" name="tjmMode" id="tm-direct" value="direct" checked><label for="tm-direct">Je connais mon TJM</label>
+          <input type="radio" name="tjmMode" id="tm-calc" value="calc"><label for="tm-calc">Le calculer depuis mon revenu</label>
+        </div>
+        <div class="field" id="tjmDirect">
+          <label for="tjm">TJM</label>
+          <div class="unit"><input type="number" id="tjm" min="50" step="10" value="350"><span>€ HT/jour</span></div>
+          <p class="hint">Un jour = environ 7 h de production facturable.</p>
+        </div>
+        <div class="tjmcalc" id="tjmCalc" hidden>
+          <div class="row">
+            <div class="field"><label for="netWanted">Revenu net souhaité</label>
+              <div class="unit"><input type="number" id="netWanted" min="0" step="100" value="2200"><span>€/mois</span></div></div>
+            <div class="field"><label for="daysYear">Jours facturés par an</label>
+              <div class="unit"><input type="number" id="daysYear" min="20" max="260" step="5" value="160"><span>jours</span></div></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="chargeRate">Cotisations sociales</label>
+              <div class="unit"><input type="number" id="chargeRate" min="0" max="70" step="0.1" value="26.1"><span>% du CA</span></div>
+              <p class="hint">Micro-entreprise BNC : vérifie le taux de l’année sur urssaf.fr.</p></div>
+            <div class="field"><label for="costsYear">Frais pro annuels</label>
+              <div class="unit"><input type="number" id="costsYear" min="0" step="100" value="2400"><span>€/an</span></div>
+              <p class="hint">Logiciels, matériel, compta, assurance…</p></div>
+          </div>
+          <p class="result-inline" id="tjmOut"></p>
+        </div>
+      </section>
+
+      <section class="block">
+        <h2>Le projet <span class="step">2</span></h2>
+        <div class="field"><span class="lbl">Type de site</span>
+          <div class="seg" id="typeSeg"></div></div>
+        <div class="row">
+          <div class="field" id="pagesField"><label for="pages">Nombre de pages</label>
+            <input type="number" id="pages" min="1" max="200" value="5"></div>
+          <div class="field" id="productsField" hidden><label for="products">Produits à intégrer</label>
+            <input type="number" id="products" min="0" max="5000" step="5" value="20">
+            <p class="hint">0 si le client ajoute ses produits lui-même.</p></div>
+        </div>
+        <div class="field"><span class="lbl">Niveau de design</span>
+          <div class="seg" id="designSeg"></div></div>
+      </section>
+
+      <section class="block">
+        <h2>Fonctionnalités <span class="step">3</span></h2>
+        <div class="feats" id="feats"></div>
+      </section>
+
+      <section class="block">
+        <h2>Contexte <span class="step">4</span></h2>
+        <div class="field"><span class="lbl">Type de client</span>
+          <div class="seg" id="clientSeg"></div></div>
+        <div class="field"><span class="lbl">Délai</span>
+          <div class="seg" id="urgSeg"></div></div>
+        <div class="field"><label for="risk">Marge pour imprévus : <b id="riskVal"></b></label>
+          <input type="range" id="risk" min="0" max="40" step="5" value="15">
+          <p class="hint">Allers-retours, contenus en retard, bugs. 10 à 20 % est un bon réflexe.</p></div>
+        <div class="row">
+          <div class="field"><span class="lbl">TVA</span>
+            <div class="seg">
+              <input type="radio" name="tva" id="tva-no" value="0" checked><label for="tva-no">Franchise<small>micro-entreprise</small></label>
+              <input type="radio" name="tva" id="tva-yes" value="20"><label for="tva-yes">20 %<small>assujettie</small></label>
+            </div></div>
+          <div class="field"><span class="lbl">Maintenance proposée</span>
+            <div class="seg" id="maintSeg"></div></div>
+        </div>
+      </section>
+    </form>
+
+    <aside class="sheet" id="devis" aria-live="polite">
+      <div class="sheet-head"><b>Estimation</b><span id="dateStr"></span></div>
+      <div class="big">
+        <span class="lbl" id="bigLbl">Prix à annoncer</span>
+        <span class="num" id="bigNum">–</span>
+        <span class="range" id="range"></span>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Poste</th><th class="n">Jours</th><th class="n">Montant HT</th></tr></thead>
+          <tbody id="lines"></tbody>
+        </table>
+      </div>
+      <p class="mention" id="mention"></p>
+      <div class="extra">
+        <h3>Paiement conseillé</h3>
+        <div id="sched"></div>
+      </div>
+      <div class="extra" id="maintBox">
+        <h3>Ensuite, chaque mois</h3>
+        <div id="maint"></div>
+      </div>
+      <button class="copy" id="copy" type="button">Copier le devis en texte</button>
+      <p class="copied" id="copied"></p>
+      <textarea id="copyFallback" hidden readonly aria-label="Texte du devis"></textarea>
+    </aside>
+  </div>
+</div>
+
+<div class="mbar"><div><small class="hint">Prix à annoncer</small><br><b id="mbarNum">–</b></div><a href="#devis">Voir le détail</a></div>
+
+<script>
+const TYPES = [
+  {id:"landing", name:"Landing page", sub:"1 page", base:1.5, fixedPages:1},
+  {id:"vitrine", name:"Site vitrine", sub:"3 à 10 pages", base:2},
+  {id:"blog", name:"Blog / média", sub:"articles + CMS", base:3},
+  {id:"ecom", name:"E-commerce", sub:"boutique en ligne", base:5},
+  {id:"custom", name:"Sur mesure", sub:"appli web", base:8},
+];
+const DESIGNS = [
+  {id:"template", name:"Thème existant", sub:"adapté aux couleurs", perPage:.4, mockBase:0, mockPage:0},
+  {id:"perso", name:"Personnalisé", sub:"maquette de la home", perPage:.7, mockBase:1, mockPage:.2},
+  {id:"bespoke", name:"Sur mesure", sub:"maquettes Figma complètes", perPage:1, mockBase:2, mockPage:.4},
+];
+const FEATS = [
+  {id:"form", name:"Formulaire de contact", d:.5},
+  {id:"cms", name:"Back-office pour modifier les contenus", d:1.5},
+  {id:"seo", name:"SEO de base (balises, sitemap, vitesse)", d:1},
+  {id:"rgpd", name:"Bandeau cookies + mentions légales", d:.5},
+  {id:"multi", name:"Version multilingue", d:1.5, perPage:.25},
+  {id:"anim", name:"Animations avancées", d:1.5},
+  {id:"booking", name:"Réservation / prise de RDV", d:2},
+  {id:"members", name:"Espace membre / connexion", d:3},
+  {id:"pay", name:"Paiement en ligne", d:2},
+  {id:"api", name:"Intégration outil externe (CRM, API…)", d:2},
+  {id:"copy", name:"Rédaction des textes", d:0, perPage:.5},
+  {id:"migr", name:"Reprise d’un ancien site", d:1.5},
+  {id:"train", name:"Formation du client", d:.5},
+];
+const CLIENTS = [
+  {id:"asso", name:"Asso / particulier", m:.85},
+  {id:"tpe", name:"Indépendant / TPE", m:1},
+  {id:"pme", name:"PME", m:1.15},
+  {id:"gc", name:"Grand compte / agence", m:1.3},
+];
+const URG = [
+  {id:"norm", name:"Normal", sub:"4 à 8 semaines", m:0},
+  {id:"fast", name:"Rapide", sub:"+20 %", m:.2},
+  {id:"rush", name:"Urgent", sub:"+40 %", m:.4},
+];
+const MAINT = [
+  {id:"none", name:"Aucune", h:0},
+  {id:"basic", name:"Essentielle", sub:"2 h/mois", h:2},
+  {id:"full", name:"Complète", sub:"4 h/mois", h:4},
+];
+const DEFAULTS = {tjmMode:"direct", tjm:350, netWanted:2200, daysYear:160, chargeRate:26.1, costsYear:2400,
+  type:"vitrine", pages:5, products:20, design:"perso", feats:["form","seo","rgpd","cms","train"],
+  client:"tpe", urg:"norm", risk:15, tva:"0", maint:"basic"};
+
+const $ = id => document.getElementById(id);
+const eur = n => n.toLocaleString("fr-FR",{maximumFractionDigits:0}) + " €";
+const days = n => n.toLocaleString("fr-FR",{minimumFractionDigits:1,maximumFractionDigits:1});
+
+function seg(el, name, items){
+  el.innerHTML = items.map(it => `<input type="radio" name="${name}" id="${name}-${it.id}" value="${it.id}"><label for="${name}-${it.id}">${it.name}${it.sub?`<small>${it.sub}</small>`:""}</label>`).join("");
+}
+seg($("typeSeg"),"type",TYPES); seg($("designSeg"),"design",DESIGNS);
+seg($("clientSeg"),"client",CLIENTS); seg($("urgSeg"),"urg",URG); seg($("maintSeg"),"maint",MAINT);
+$("feats").innerHTML = FEATS.map(f => `<label class="feat"><input type="checkbox" id="ft-${f.id}" value="${f.id}"><span>${f.name}<small>${f.d?`${days(f.d)} j`:""}${f.d&&f.perPage?" + ":""}${f.perPage?`${days(f.perPage).replace(/,0$/,"")} j/page`.replace("0,25","¼").replace("0,5","½"):""}</small></span></label>`).join("");
+
+function radio(name){ const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : null; }
+function setRadio(name,v){ const r = document.querySelector(`input[name="${name}"][value="${v}"]`); if(r) r.checked = true; }
+const num = (id, fb) => { const v = parseFloat($(id).value); return isFinite(v) ? v : fb; };
+
+function readState(){
+  return {tjmMode:radio("tjmMode"), tjm:num("tjm",0), netWanted:num("netWanted",0), daysYear:num("daysYear",1),
+    chargeRate:num("chargeRate",0), costsYear:num("costsYear",0), type:radio("type"), pages:Math.max(1,Math.round(num("pages",1))),
+    products:Math.max(0,num("products",0)), design:radio("design"), feats:FEATS.filter(f=>$("ft-"+f.id).checked).map(f=>f.id),
+    client:radio("client"), urg:radio("urg"), risk:num("risk",0), tva:radio("tva"), maint:radio("maint")};
+}
+function applyState(s){
+  setRadio("tjmMode",s.tjmMode); ["tjm","netWanted","daysYear","chargeRate","costsYear","pages","products","risk"].forEach(k=>$(k).value=s[k]);
+  setRadio("type",s.type); setRadio("design",s.design); setRadio("client",s.client); setRadio("urg",s.urg); setRadio("tva",s.tva); setRadio("maint",s.maint);
+  FEATS.forEach(f=>$("ft-"+f.id).checked = s.feats.includes(f.id));
+}
+
+function tjmFromIncome(s){
+  const rate = Math.min(s.chargeRate,90)/100;
+  const ca = (s.netWanted*12 + s.costsYear) / (1 - rate);
+  return {ca, tjm: Math.ceil(ca / Math.max(s.daysYear,1) / 10) * 10};
+}
+
+function compute(s){
+  const type = TYPES.find(t=>t.id===s.type), des = DESIGNS.find(d=>d.id===s.design);
+  const client = CLIENTS.find(c=>c.id===s.client), urg = URG.find(u=>u.id===s.urg), maint = MAINT.find(m=>m.id===s.maint);
+  const baseTjm = s.tjmMode==="calc" ? tjmFromIncome(s).tjm : s.tjm;
+  const tjm = Math.round(baseTjm * client.m);
+  const pages = type.fixedPages || s.pages;
+  const L = [];
+  L.push({name:"Cadrage, installation et mise en ligne", d:type.base});
+  const mock = des.mockBase + des.mockPage*pages;
+  if(mock>0) L.push({name:`Maquettes (${des.name.toLowerCase()})`, d:mock});
+  L.push({name:`Intégration de ${pages} page${pages>1?"s":""}`, d:des.perPage*pages});
+  if(s.type==="ecom" && s.products>0) L.push({name:`Intégration de ${s.products} produits`, d:s.products*.03});
+  FEATS.filter(f=>s.feats.includes(f.id)).forEach(f => L.push({name:f.name, d:f.d + (f.perPage||0)*pages}));
+  const prod = L.reduce((a,l)=>a+l.d,0);
+  L.push({name:"Gestion de projet et échanges", d:prod*.15, sub:true});
+  const withPm = prod*1.15;
+  if(s.risk>0) L.push({name:`Marge pour imprévus (${s.risk} %)`, d:withPm*s.risk/100, sub:true});
+  const totalDays = L.reduce((a,l)=>a+l.d,0);
+  L.forEach(l=>l.amt = l.d*tjm);
+  let ht = totalDays*tjm;
+  if(urg.m>0){ L.push({name:`Majoration délai ${urg.name.toLowerCase()} (+${urg.m*100} %)`, d:null, amt:ht*urg.m, sub:true}); ht *= 1+urg.m; }
+  const htR = Math.round(ht/50)*50;
+  const tvaRate = +s.tva/100;
+  return {L, tjm, baseTjm, totalDays, ht:htR, tva:htR*tvaRate, ttc:htR*(1+tvaRate), tvaRate,
+    low:Math.round(htR*.9/50)*50, high:Math.round(htR*1.15/50)*50, weeks:Math.ceil(totalDays/3.5*(urg.m?1/(1+urg.m*1.5):1)),
+    maintHours:maint.h, maintPrice:Math.round(maint.h*tjm/7/5)*5, hourly:Math.round(tjm/7), type};
+}
+
+let last;
+function render(){
+  const s = readState();
+  $("tjmDirect").hidden = s.tjmMode!=="direct"; $("tjmCalc").hidden = s.tjmMode!=="calc";
+  if(s.tjmMode==="calc"){ const r = tjmFromIncome(s); $("tjmOut").textContent = `→ CA annuel visé ${eur(Math.round(r.ca))}, soit un TJM de ${eur(r.tjm)} HT`; }
+  const t = TYPES.find(x=>x.id===s.type);
+  $("pagesField").hidden = !!t.fixedPages; $("productsField").hidden = s.type!=="ecom";
+  $("riskVal").textContent = s.risk + " %";
+
+  const r = last = compute(s);
+  const main = r.tvaRate ? r.ttc : r.ht;
+  $("bigLbl").textContent = r.tvaRate ? "Prix à annoncer (TTC)" : "Prix à annoncer (HT, TVA non applicable)";
+  $("bigNum").innerHTML = eur(Math.round(main)).replace(" €","") + "<small>€</small>";
+  $("mbarNum").textContent = eur(Math.round(main));
+  $("range").textContent = `Fourchette négociable : ${eur(r.low)} – ${eur(r.high)} HT`;
+  $("chips").innerHTML = `<span class="chip"><b>${days(r.totalDays)}</b> jours</span><span class="chip">TJM appliqué <b>${eur(r.tjm)}</b></span><span class="chip">≈ <b>${r.weeks}</b> sem. de délai</span>`;
+  $("lines").innerHTML = r.L.map(l=>`<tr><td${l.sub?' class="sub"':""}>${l.name}</td><td class="n">${l.d==null?"":days(l.d)}</td><td class="n">${eur(Math.round(l.amt))}</td></tr>`).join("")
+    + `<tr class="tot"><td>Total HT (arrondi)</td><td class="n">${days(r.totalDays)}</td><td class="n">${eur(r.ht)}</td></tr>`
+    + (r.tvaRate ? `<tr class="tot"><td>TVA 20 %</td><td></td><td class="n">${eur(Math.round(r.tva))}</td></tr><tr class="grand"><td>Total TTC</td><td></td><td class="n">${eur(Math.round(r.ttc))}</td></tr>`
+                 : `<tr class="grand"><td>Net à payer</td><td></td><td class="n">${eur(r.ht)}</td></tr>`);
+  $("mention").textContent = r.tvaRate ? "" : "TVA non applicable, art. 293 B du CGI.";
+  $("mention").hidden = !!r.tvaRate;
+  const pay = r.tvaRate ? r.ttc : r.ht;
+  const split = r.ht >= 1500 ? [["Acompte à la signature",.3],["Validation des maquettes",.4],["Mise en ligne",.3]] : [["Acompte à la signature",.5],["Mise en ligne",.5]];
+  $("sched").innerHTML = split.map(([n,p])=>`<div class="kv"><span>${n} (${p*100} %)</span><span>${eur(Math.round(pay*p))}</span></div>`).join("");
+  $("maintBox").hidden = !r.maintHours;
+  $("maint").innerHTML = `<div class="kv"><span>Maintenance ${r.maintHours} h (mises à jour, sauvegardes, petites modifs)</span><span>${eur(r.maintPrice)} HT</span></div><div class="kv"><span>Hébergement + domaine, à refacturer au réel</span><span>≈ 10–25 €</span></div>`;
+  try{ localStorage.setItem("combien-facturer", JSON.stringify(s)); }catch(e){}
+}
+
+function devisText(){
+  const r = last, s = readState();
+  const lines = r.L.map(l=>`- ${l.name}${l.d!=null?` (${days(l.d)} j)`:""} : ${eur(Math.round(l.amt))}`).join("\n");
+  return `ESTIMATION – ${r.type.name}\n\n${lines}\n\nTotal HT : ${eur(r.ht)}` +
+    (r.tvaRate ? `\nTVA 20 % : ${eur(Math.round(r.tva))}\nTotal TTC : ${eur(Math.round(r.ttc))}` : `\nTVA non applicable, art. 293 B du CGI.`) +
+    `\n\nDurée estimée : ${days(r.totalDays)} jours de travail (environ ${r.weeks} semaines)` +
+    (r.maintHours ? `\nMaintenance mensuelle (option) : ${eur(r.maintPrice)} HT/mois` : "");
+}
+$("copy").addEventListener("click", () => {
+  const txt = devisText();
+  const ok = () => { $("copied").textContent = "Copié. Colle-le dans ton mail ou ton outil de devis."; $("copyFallback").hidden = true; };
+  const fail = () => { const ta = $("copyFallback"); ta.value = txt; ta.hidden = false; ta.focus(); ta.select(); $("copied").textContent = "Copie bloquée ici : sélectionne le texte ci-dessous."; };
+  try{ navigator.clipboard.writeText(txt).then(ok, fail); }catch(e){ fail(); }
+});
+$("reset").addEventListener("click", () => { applyState(DEFAULTS); render(); });
+$("f").addEventListener("input", render);
+$("f").addEventListener("change", render);
+
+$("dateStr").textContent = new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
+let saved = null;
+try{ saved = JSON.parse(localStorage.getItem("combien-facturer")); }catch(e){}
+applyState(Object.assign({}, DEFAULTS, saved || {}));
+render();
+</script>
+<script>
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredPrompt = e; $("install").hidden = false; });
+$("install").addEventListener("click", async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; $("install").hidden = true; });
+window.addEventListener("appinstalled", () => { $("install").hidden = true; });
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone) $("iosHint").hidden = false;
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
